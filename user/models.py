@@ -1,6 +1,7 @@
 import datetime
-
+from lib.orm import ModelMixin
 from django.db import models
+from django.utils.functional import cached_property
 
 # Create your models here.
 '''
@@ -19,7 +20,7 @@ id location dating_sex
 
 '''
 
-class User(models.Model):
+class User(models.Model,ModelMixin):
 
     SEX = (
         ('male','男'),
@@ -37,7 +38,7 @@ class User(models.Model):
 
 
 
-    @property
+    @cached_property
     def age(self):
         today = datetime.date.today()
         birth_day = datetime.date(self.birth_year,self.birth_month,self.birth_day)
@@ -46,21 +47,25 @@ class User(models.Model):
 
     @property
     def profile(self):
-        profile,_ = Profile.objects.get_or_create(id=self.id)
-        return profile
+        # profile,_ = Profile.objects.get_or_create(id=self.id)
+        # return profile
+        if not hasattr(self,'_profile'):
+            profile, _ = Profile.objects.get_or_create(id=self.id)
+            self._profile = profile
+        return self._profile
 
-    def to_string(self):
-        return {
-            "phonenum":self.phonenum,
-            "nickname":self.nickname,
-            "sex":self.sex,
-            "age":self.age,
-            "avatar":self.avatar,
-            "location":self.location,
-        }
+    # def to_string(self):
+    #     return {
+    #         "phonenum":self.phonenum,
+    #         "nickname":self.nickname,
+    #         "sex":self.sex,
+    #         "age":self.age,
+    #         "avatar":self.avatar,
+    #         "location":self.location,
+    #     }
 
 
-class Profile(models.Model):
+class Profile(models.Model,ModelMixin):
     SEX = (
         ('male', '男'),
         ('female', '女')
@@ -74,3 +79,4 @@ class Profile(models.Model):
     vibration = models.BooleanField(default=True,verbose_name='开启震动')
     only_matche = models.BooleanField(default=True,verbose_name='不让为匹配的人看我的相册')
     auto_play = models.BooleanField(default=True,verbose_name='自动播放视频')
+

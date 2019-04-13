@@ -1,10 +1,14 @@
 from lib.http import render_json
 from django.shortcuts import render
+from swiper import settings
 from lib.sms import send_sms
 from common import errors
 from django.core.cache import cache
 from common import keys
-from user.models import User,Profile
+from user.models import User
+from user.forms import ProfileForm
+
+import os
 # Create your views here.
 
 def submit_phone(request,code=0):
@@ -59,9 +63,43 @@ def get_profile(request):
     profile = user.profile
     return render_json(profile.to_string())
 
+
 def set_profile(request):
     """修改个人资料"""
-    pass
+    # 判断是否是POST请求
+    if not request.method == 'POST':
+        return render_json('request method error', errors.REQUEST_METHOD_ERROR)
+
+    uid = request.session.get('uid')
+    profile_form = ProfileForm(request.POST)
+
+
+    #is_valid()函数用于验证form表单是否有错误
+    if profile_form.is_valid():
+        profile = profile_form.save(commit=False)
+        profile.id = uid
+        profile.save()
+
+        return render_json('modify profile success')
+    else:
+        return render_json(profile_form.errors,code=errors.FORM_VALID_ERROR)
+
+
+
 def upload_avatar(request):
     """头像上传"""
-    pass
+    # 判断是否是POST请求
+    if not request.method == 'POST':
+        return render_json('request method error', errors.REQUEST_METHOD_ERROR)
+
+    avatar = request.FILES.get('avatar')
+    uid = request.session.get('uid')
+
+    file_name = 'avatar-%s'%uid + os.path.splitext(avatar.name)[1]
+    save_path = os.path.join(settings.BASE_DIR,settings.MEDIA_ROOT,file_name)
+
+    with open(save_path,'wb') as fp:
+        for chunk in avatar.chunks():
+            fp.write(chunk)
+
+    return render_json('upload success')
